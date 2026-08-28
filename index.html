@@ -244,13 +244,26 @@ function isToday(d) {
 }
 
 async function loadState(key) {
+  // Try Claude artifact storage first, fall back to localStorage
   try {
-    const r = await window.storage.get(key);
-    return r ? JSON.parse(r.value) : {};
+    if (window.storage) {
+      const r = await window.storage.get(key);
+      return r ? JSON.parse(r.value) : {};
+    }
+  } catch {}
+  try {
+    const v = localStorage.getItem('ear_' + key);
+    return v ? JSON.parse(v) : {};
   } catch { return {}; }
 }
 async function saveState(key, val) {
-  try { await window.storage.set(key, JSON.stringify(val)); } catch(e) { console.error(e); }
+  try {
+    if (window.storage) {
+      await window.storage.set(key, JSON.stringify(val));
+      return;
+    }
+  } catch {}
+  try { localStorage.setItem('ear_' + key, JSON.stringify(val)); } catch(e) { console.error(e); }
 }
 
 let medState = {};
