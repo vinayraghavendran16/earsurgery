@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ear Treatment Tracker</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    margin: 0;
+    padding: 20px;
+    background: #f5f7fa;
+    color: #1f2937;
+  }
+  .container { max-width: 1100px; margin: 0 auto; }
+  h1 { margin: 0 0 4px 0; font-size: 26px; }
+  .subtitle { color: #6b7280; margin-bottom: 24px; font-size: 14px; }
+  .tabs { display: flex; gap: 4px; border-bottom: 2px solid #e5e7eb; margin-bottom: 24px; }
+  .tab {
+    padding: 10px 20px; cursor: pointer; border: none; background: none;
+    font-size: 15px; font-weight: 500; color: #6b7280;
+    border-bottom: 3px solid transparent; margin-bottom: -2px;
+  }
+  .tab.active { color: #2563eb; border-bottom-color: #2563eb; }
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  .card {
+    background: white; border-radius: 12px; padding: 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05); margin-bottom: 20px;
+  }
+
+  /* Med tracker */
+  .day-row {
+    display: grid;
+    grid-template-columns: 90px repeat(3, 1fr);
+    gap: 12px; align-items: center; padding: 10px 0;
+    border-bottom: 1px solid #f3f4f6;
+  }
+  .day-row:last-child { border-bottom: none; }
+  .day-row.header { font-weight: 600; font-size: 13px; color: #6b7280; text-transform: uppercase; }
+  .day-label { font-weight: 600; }
+  .day-label small { display: block; color: #6b7280; font-weight: normal; font-size: 12px; }
+  .today { background: #fef3c7; border-radius: 8px; padding: 10px; margin: 0 -10px; }
+  .dose-group { display: flex; gap: 10px; flex-wrap: wrap; }
+  .dose {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 4px 10px; background: #f3f4f6; border-radius: 6px;
+    font-size: 13px; cursor: pointer; user-select: none;
+  }
+  .dose input { cursor: pointer; }
+  .dose.done { background: #d1fae5; color: #065f46; text-decoration: line-through; }
+  .med-title { font-size: 18px; font-weight: 600; margin-bottom: 8px; }
+  .med-desc { color: #6b7280; font-size: 13px; margin-bottom: 12px; }
+
+  .progress-bar {
+    height: 8px; background: #e5e7eb; border-radius: 4px; overflow: hidden;
+    margin-top: 10px;
+  }
+  .progress-fill { height: 100%; background: #10b981; transition: width 0.3s; }
+  .progress-text { font-size: 13px; color: #6b7280; margin-top: 6px; }
+
+  /* Expense tracker */
+  .expense-form {
+    display: grid; grid-template-columns: 1fr 2fr 1fr auto;
+    gap: 10px; margin-bottom: 16px;
+  }
+  .expense-form select, .expense-form input {
+    padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px;
+    font-size: 14px; font-family: inherit;
+  }
+  .btn {
+    padding: 8px 16px; background: #2563eb; color: white;
+    border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500;
+  }
+  .btn:hover { background: #1d4ed8; }
+  .btn-sm { padding: 4px 10px; font-size: 12px; }
+  .btn-danger { background: #ef4444; }
+  .btn-danger:hover { background: #dc2626; }
+
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: 10px; border-bottom: 1px solid #f3f4f6; font-size: 14px; }
+  th { font-weight: 600; color: #6b7280; font-size: 13px; text-transform: uppercase; }
+  tfoot td { font-weight: 700; border-top: 2px solid #e5e7eb; border-bottom: none; }
+  td.amount, th.amount { text-align: right; font-variant-numeric: tabular-nums; }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media (max-width: 720px) {
+    .grid-2 { grid-template-columns: 1fr; }
+    .expense-form { grid-template-columns: 1fr 1fr; }
+    .day-row { grid-template-columns: 70px 1fr; }
+    .day-row.header { display: none; }
+    .dose-group { grid-column: 2; }
+  }
+
+  .pie-wrap { display: flex; justify-content: center; align-items: center; }
+  .legend { display: flex; flex-direction: column; gap: 8px; padding-left: 20px; }
+  .legend-item { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+  .legend-dot { width: 12px; height: 12px; border-radius: 3px; }
+
+  .empty { text-align: center; color: #9ca3af; padding: 30px; }
+  .filter-btn {
+    padding: 5px 12px; border: 1px solid #d1d5db; background: white;
+    border-radius: 999px; cursor: pointer; font-size: 13px; color: #374151;
+  }
+  .filter-btn:hover { background: #f3f4f6; }
+  .filter-btn.active { background: #2563eb; color: white; border-color: #2563eb; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Ear Treatment Tracker</h1>
+  <div class="subtitle">Treatment starting Aug 27, 2026 · Morning + Night doses</div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('meds', this)">Medications</button>
+    <button class="tab" onclick="switchTab('expenses', this)">Expenses</button>
+  </div>
+
+  <!-- MEDICATIONS PANEL -->
+  <div id="meds" class="panel active">
+    <div class="card">
+      <div class="med-title">💧 Ear Drops — Candibiotic Plus</div>
+      <div class="med-desc">2 drops, morning + night · 7 days (Aug 27 – Sep 2)</div>
+      <div id="ear-drops-schedule"></div>
+      <div class="progress-bar"><div class="progress-fill" id="ear-drops-progress"></div></div>
+      <div class="progress-text" id="ear-drops-text"></div>
+    </div>
+
+    <div class="card">
+      <div class="med-title">👃 Nose Spray — Allegra Duo</div>
+      <div class="med-desc">2 puffs, morning + night · 14 days (Aug 27 – Sep 9)</div>
+      <div id="nose-spray-schedule"></div>
+      <div class="progress-bar"><div class="progress-fill" id="nose-spray-progress"></div></div>
+      <div class="progress-text" id="nose-spray-text"></div>
+    </div>
+
+    <div class="card">
+      <div class="med-title">💉 IV Antibiotics — Inj. Magnex 2G</div>
+      <div class="med-desc">Cefoperazone Sulbactam 2G in 100ml NS × 1 hr, morning + night · 10 days (Aug 27 – Sep 5)</div>
+      <div id="iv-antibiotics-schedule"></div>
+      <div class="progress-bar"><div class="progress-fill" id="iv-antibiotics-progress"></div></div>
+      <div class="progress-text" id="iv-antibiotics-text"></div>
+    </div>
+  </div>
+
+  <!-- EXPENSES PANEL -->
+  <div id="expenses" class="panel">
+    <div class="card">
+      <div class="med-title">Add expense</div>
+      <div class="expense-form">
+        <select id="exp-category">
+          <option value="Consultations">Consultations</option>
+          <option value="Scans">Scans</option>
+          <option value="Medicines">Medicines</option>
+        </select>
+        <input type="text" id="exp-desc" placeholder="Description (e.g., ENT visit Dr. X)">
+        <input type="number" id="exp-amount" placeholder="Amount (₹)" min="0" step="0.01">
+        <button class="btn" onclick="addExpense()">Add</button>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="med-title">Summary</div>
+        <table id="summary-table">
+          <thead>
+            <tr><th>Category</th><th class="amount">Amount (₹)</th><th class="amount">%</th></tr>
+          </thead>
+          <tbody id="summary-body"></tbody>
+          <tfoot>
+            <tr><td>Total</td><td class="amount" id="summary-total">0</td><td class="amount">100%</td></tr>
+          </tfoot>
+        </table>
+      </div>
+
+      <div class="card">
+        <div class="med-title">Breakdown</div>
+        <div class="pie-wrap">
+          <svg id="pie-chart" width="200" height="200" viewBox="0 0 200 200"></svg>
+          <div class="legend" id="pie-legend"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="med-title">All entries</div>
+      <div style="margin-bottom:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <span style="font-size:13px;color:#6b7280;font-weight:600">Filter:</span>
+        <button class="filter-btn active" data-filter="All" onclick="setFilter('All',this)">All</button>
+        <button class="filter-btn" data-filter="Consultations" onclick="setFilter('Consultations',this)">Consultations</button>
+        <button class="filter-btn" data-filter="Scans" onclick="setFilter('Scans',this)">Scans</button>
+        <button class="filter-btn" data-filter="Medicines" onclick="setFilter('Medicines',this)">Medicines</button>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th><th>Category</th><th>Description</th>
+            <th class="amount">Amount (₹)</th><th></th>
+          </tr>
+        </thead>
+        <tbody id="expense-body"></tbody>
+      </table>
+      <div id="expense-empty" class="empty">No expenses added yet.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============ CONFIG ============
+const START_DATE = new Date(2026, 7, 27); // Aug 27, 2026
+
+const MED_CONFIG = {
+  'ear-drops':      { doses: ['Morning', 'Night'], days: 7,  name: 'Candibiotic Plus' },
+  'nose-spray':     { doses: ['Morning', 'Night'], days: 14, name: 'Allegra Duo' },
+  'iv-antibiotics': { doses: ['Morning', 'Night'], days: 10, name: 'Inj. Magnex 2G' }
+};
+
+const CATEGORY_COLORS = {
+  'Consultations': '#3b82f6',
+  'Scans':         '#f59e0b',
+  'Medicines':     '#10b981'
+};
+
+// ============ TABS ============
+function switchTab(id, btn) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  btn.classList.add('active');
+}
+
+// ============ MED TRACKER ============
+function formatDate(d) {
+  return d.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' });
+}
+function dateKey(d) {
+  return d.toISOString().slice(0,10);
+}
+function isToday(d) {
+  const t = new Date();
+  return d.toDateString() === t.toDateString();
+}
+
+async function loadState(key) {
+  try {
+    const r = await window.storage.get(key);
+    return r ? JSON.parse(r.value) : {};
+  } catch { return {}; }
+}
+async function saveState(key, val) {
+  try { await window.storage.set(key, JSON.stringify(val)); } catch(e) { console.error(e); }
+}
+
+let medState = {};
+
+async function renderMeds() {
+  medState = await loadState('med-state');
+
+  for (const [medId, cfg] of Object.entries(MED_CONFIG)) {
+    const container = document.getElementById(medId + '-schedule');
+    let html = `<div class="day-row header"><div>Day</div><div>Doses</div></div>`;
+    for (let i = 0; i < cfg.days; i++) {
+      const d = new Date(START_DATE);
+      d.setDate(d.getDate() + i);
+      const key = dateKey(d);
+      const todayCls = isToday(d) ? ' today' : '';
+      html += `<div class="day-row${todayCls}">
+        <div class="day-label">Day ${i+1}<small>${formatDate(d)}</small></div>
+        <div class="dose-group">`;
+      for (const dose of cfg.doses) {
+        const stateKey = `${medId}|${key}|${dose}`;
+        const done = medState[stateKey] || false;
+        html += `<label class="dose${done ? ' done' : ''}">
+          <input type="checkbox" ${done ? 'checked' : ''}
+                 onchange="toggleDose('${stateKey}', this)"> ${dose}
+        </label>`;
+      }
+      html += `</div></div>`;
+    }
+    container.innerHTML = html;
+    updateProgress(medId);
+  }
+}
+
+async function toggleDose(key, cb) {
+  medState[key] = cb.checked;
+  await saveState('med-state', medState);
+  cb.parentElement.classList.toggle('done', cb.checked);
+  const medId = key.split('|')[0];
+  updateProgress(medId);
+}
+
+function updateProgress(medId) {
+  const cfg = MED_CONFIG[medId];
+  const total = cfg.days * cfg.doses.length;
+  let done = 0;
+  for (let i = 0; i < cfg.days; i++) {
+    const d = new Date(START_DATE);
+    d.setDate(d.getDate() + i);
+    const key = dateKey(d);
+    for (const dose of cfg.doses) {
+      if (medState[`${medId}|${key}|${dose}`]) done++;
+    }
+  }
+  const pct = total ? (done / total * 100) : 0;
+  document.getElementById(medId + '-progress').style.width = pct + '%';
+  document.getElementById(medId + '-text').textContent =
+    `${done} of ${total} doses completed (${pct.toFixed(0)}%) · ${cfg.days} days total`;
+}
+
+// ============ EXPENSES ============
+let expenses = [];
+let currentFilter = 'All';
+
+const SEED_VERSION = 5;
+const SEED_EXPENSES = [
+  { id: 1755599001, date: '2026-08-20', category: 'Consultations', description: 'Registration Fee — ENT MHB (Bill 71871)', amount: 400 },
+  { id: 1755600001, date: '2026-08-20', category: 'Consultations', description: 'ENT Consultation — Dr. Niveditha Damodharan (initial)', amount: 1000 },
+  { id: 1755601001, date: '2026-08-20', category: 'Scans',         description: 'Ear Swab Culture + Fungus KOH Smear (Bill 71921)', amount: 2330 },
+  { id: 1756200001, date: '2026-08-26', category: 'Consultations', description: 'ENT Follow-up — Dr. Niveditha Damodharan', amount: 1000 },
+  { id: 1756200002, date: '2026-08-26', category: 'Scans',         description: 'Pure Tone Audiogram + Impedance Audiometry', amount: 1700 },
+  { id: 1756200003, date: '2026-08-26', category: 'Consultations', description: 'Infectious Disease Consultation — Dr. Neha Mishra', amount: 1300 },
+  { id: 1756200004, date: '2026-08-26', category: 'Medicines',     description: 'Candibiotic Plus Ear Drops 5ml (Manipal Pharmacy)', amount: 109 },
+  { id: 1756286001, date: '2026-08-27', category: 'Medicines',     description: 'Apollo Pharmacy — 2× NS + 2× IV drip sets (Hongasandra, 4:32 PM)', amount: 538.32 },
+  { id: 1756286002, date: '2026-08-27', category: 'Medicines',     description: 'Apollo Pharmacy — 6× NS + drip set + cotton + petroleum jelly (HSR Sec2, 4:14 PM)', amount: 518.96 },
+  { id: 1756296001, date: '2026-08-27', category: 'Medicines',     description: 'Apollo Pharmacy — Magnex Forte 1.5G ×2 + biscuit (HSR 5th Main, 5:49 PM)', amount: 1826.92 }
+];
+
+function setFilter(cat, btn) {
+  currentFilter = cat;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderExpenses();
+}
+
+async function loadExpenses() {
+  const stored = await loadState('expenses');
+  const storedVersion = stored.version || 0;
+  if (!stored.items || stored.items.length === 0 || storedVersion < SEED_VERSION) {
+    // Merge: keep user-added entries, refresh seeds
+    const existingUserAdded = (stored.items || []).filter(e => e.id > 1800000000);
+    expenses = [...SEED_EXPENSES, ...existingUserAdded];
+    await saveExpenses();
+  } else {
+    expenses = stored.items;
+  }
+  renderExpenses();
+}
+
+async function saveExpenses() {
+  await saveState('expenses', { items: expenses, version: SEED_VERSION });
+}
+async function addExpense() {
+  const cat = document.getElementById('exp-category').value;
+  const desc = document.getElementById('exp-desc').value.trim();
+  const amt = parseFloat(document.getElementById('exp-amount').value);
+  if (!desc || !amt || amt <= 0) {
+    alert('Enter description and a valid amount');
+    return;
+  }
+  expenses.push({
+    id: Date.now() + 1800000000, // > SEED_EXPENSES ids, marks as user-added
+    date: new Date().toISOString().slice(0,10),
+    category: cat, description: desc, amount: amt
+  });
+  await saveExpenses();
+  document.getElementById('exp-desc').value = '';
+  document.getElementById('exp-amount').value = '';
+  renderExpenses();
+}
+
+async function removeExpense(id) {
+  expenses = expenses.filter(e => e.id !== id);
+  await saveExpenses();
+  renderExpenses();
+}
+
+function renderExpenses() {
+  // Entries table (with filter)
+  const body = document.getElementById('expense-body');
+  const empty = document.getElementById('expense-empty');
+  const filtered = currentFilter === 'All' ? expenses : expenses.filter(e => e.category === currentFilter);
+  if (filtered.length === 0) {
+    body.innerHTML = '';
+    empty.textContent = expenses.length === 0 ? 'No expenses added yet.' : `No ${currentFilter} entries.`;
+    empty.style.display = 'block';
+  } else {
+    empty.style.display = 'none';
+    body.innerHTML = filtered.slice().reverse().map(e => `
+      <tr>
+        <td>${e.date}</td>
+        <td>${e.category}</td>
+        <td>${e.description}</td>
+        <td class="amount">${e.amount.toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
+        <td><button class="btn btn-danger btn-sm" onclick="removeExpense(${e.id})">×</button></td>
+      </tr>`).join('');
+  }
+
+  // Summary
+  const totals = { Consultations: 0, Scans: 0, Medicines: 0 };
+  expenses.forEach(e => { totals[e.category] = (totals[e.category] || 0) + e.amount; });
+  const grand = Object.values(totals).reduce((a,b)=>a+b, 0);
+
+  const sumBody = document.getElementById('summary-body');
+  sumBody.innerHTML = Object.entries(totals).map(([cat, amt]) => `
+    <tr>
+      <td><span class="legend-dot" style="display:inline-block;background:${CATEGORY_COLORS[cat]};margin-right:6px"></span>${cat}</td>
+      <td class="amount">${amt.toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
+      <td class="amount">${grand ? (amt/grand*100).toFixed(1) : '0.0'}%</td>
+    </tr>`).join('');
+  document.getElementById('summary-total').textContent =
+    grand.toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2});
+
+  // Pie chart
+  drawPie(totals, grand);
+}
+
+function drawPie(totals, grand) {
+  const svg = document.getElementById('pie-chart');
+  const legend = document.getElementById('pie-legend');
+  const cx = 100, cy = 100, r = 90;
+
+  if (grand === 0) {
+    svg.innerHTML = `<circle cx="${cx}" cy="${cy}" r="${r}" fill="#f3f4f6"/>
+                     <text x="${cx}" y="${cy}" text-anchor="middle" dominant-baseline="middle"
+                           fill="#9ca3af" font-size="14">No data</text>`;
+    legend.innerHTML = '';
+    return;
+  }
+
+  let angle = -Math.PI / 2;
+  let paths = '';
+  const entries = Object.entries(totals).filter(([,v]) => v > 0);
+
+  if (entries.length === 1) {
+    // Single slice -> full circle
+    paths = `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${CATEGORY_COLORS[entries[0][0]]}"/>`;
+  } else {
+    for (const [cat, amt] of entries) {
+      const slice = (amt / grand) * 2 * Math.PI;
+      const x1 = cx + r * Math.cos(angle);
+      const y1 = cy + r * Math.sin(angle);
+      angle += slice;
+      const x2 = cx + r * Math.cos(angle);
+      const y2 = cy + r * Math.sin(angle);
+      const large = slice > Math.PI ? 1 : 0;
+      paths += `<path d="M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2} Z"
+                     fill="${CATEGORY_COLORS[cat]}" stroke="white" stroke-width="2"/>`;
+    }
+  }
+  svg.innerHTML = paths;
+
+  legend.innerHTML = Object.entries(totals).map(([cat, amt]) => `
+    <div class="legend-item">
+      <span class="legend-dot" style="background:${CATEGORY_COLORS[cat]}"></span>
+      <span>${cat}: ₹${amt.toLocaleString('en-IN', {maximumFractionDigits:0})}
+            ${grand ? `(${(amt/grand*100).toFixed(0)}%)` : ''}</span>
+    </div>`).join('');
+}
+
+// ============ INIT ============
+(async () => {
+  await renderMeds();
+  await loadExpenses();
+})();
+</script>
+</body>
+</html>
