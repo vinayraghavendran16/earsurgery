@@ -327,8 +327,10 @@ function updateProgress(medId) {
 let expenses = [];
 let currentFilter = 'All';
 
-const SEED_VERSION = 5;
+const SEED_VERSION = 7;
 const SEED_EXPENSES = [
+  { id: 1754900001, date: '2026-08-13', category: 'Scans',         description: 'CT PNS Coronal & Axial (Vijaya Diagnostic, HSR)', amount: 4500 },
+  { id: 1754900002, date: '2026-08-13', category: 'Scans',         description: 'CT Temporal Bone (Vijaya Diagnostic, HSR)', amount: 5000 },
   { id: 1755599001, date: '2026-08-20', category: 'Consultations', description: 'Registration Fee — ENT MHB (Bill 71871)', amount: 400 },
   { id: 1755600001, date: '2026-08-20', category: 'Consultations', description: 'ENT Consultation — Dr. Niveditha Damodharan (initial)', amount: 1000 },
   { id: 1755601001, date: '2026-08-20', category: 'Scans',         description: 'Ear Swab Culture + Fungus KOH Smear (Bill 71921)', amount: 2330 },
@@ -338,7 +340,10 @@ const SEED_EXPENSES = [
   { id: 1756200004, date: '2026-08-26', category: 'Medicines',     description: 'Candibiotic Plus Ear Drops 5ml (Manipal Pharmacy)', amount: 109 },
   { id: 1756286001, date: '2026-08-27', category: 'Medicines',     description: 'Apollo Pharmacy — 2× NS + 2× IV drip sets (Hongasandra, 4:32 PM)', amount: 538.32 },
   { id: 1756286002, date: '2026-08-27', category: 'Medicines',     description: 'Apollo Pharmacy — 6× NS + drip set + cotton + petroleum jelly (HSR Sec2, 4:14 PM)', amount: 518.96 },
-  { id: 1756296001, date: '2026-08-27', category: 'Medicines',     description: 'Apollo Pharmacy — Magnex Forte 1.5G ×2 + biscuit (HSR 5th Main, 5:49 PM)', amount: 1826.92 }
+  { id: 1756296001, date: '2026-08-27', category: 'Medicines',     description: 'Apollo Pharmacy — Magnex Forte 1.5G ×2 + biscuit (HSR 5th Main, 5:49 PM)', amount: 1826.92 },
+  { id: 1756296002, date: '2026-08-27', category: 'Consultations', description: 'IV Drip administration — Shree Polyclinic, Dr. Chithra S', amount: 700 },
+  { id: 1756370001, date: '2026-08-28', category: 'Medicines',     description: 'Apollo Pharmacy — Zostum 2G Inj ×4 + IV sets ×9 + NS ×10 (Hongasandra, cash)', amount: 5363.60 },
+  { id: 1756370002, date: '2026-08-28', category: 'Consultations', description: 'IV Drip administration — Shree Polyclinic, Dr. Chithra S (₹200 discount)', amount: 500 }
 ];
 
 function setFilter(cat, btn) {
